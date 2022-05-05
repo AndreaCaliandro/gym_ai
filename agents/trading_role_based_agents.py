@@ -17,8 +17,16 @@ class OneStock(BaseAgent):
         super(OneStock, self).__init__(environment)
         self.stock_name = stock_name
         self.window_size = window_size
+        self.internal_state = {'low_margin': 0,
+                               'hi_margin': 0,
+                               'ewm': 0,
+                               'trade': 0,
+                               'sold_stocks': np.array([]),
+                               'bought_stocks': np.array([]),
+                               'before_trade_stock_owned': np.array([])
+                               }
 
-    def action(self, stock_price, stock_memory, stock_owned, uninvested_cash, portfolio_amount):
+    def action(self, stock_price, stock_memory, stock_owned, uninvested_cash, portfolio_amount, **kwargs):
         # print("OneStock agent action")
         margin = trend_margins(stock_memory, self.window_size)
         timeseries_df = stock_memory[['Open']].append({'Open': stock_price}, ignore_index=True)
@@ -41,12 +49,18 @@ class OneStock(BaseAgent):
         else:
             trade = 0
 
-        internal_state = {'low_margin': low_margin,
-                          'hi_margin': hi_margin,
-                          'ewm': ewm.iloc[-1],
-                          'trade': trade,
-                          'sold_stocks': sold_stocks,
-                          'bought_stocks': bought_stocks
-                         }
+        self.internal_state = {'low_margin': low_margin,
+                               'hi_margin': hi_margin,
+                               'ewm': ewm.iloc[-1],
+                               'trade': trade,
+                               'sold_stocks': sold_stocks,
+                               'bought_stocks': bought_stocks,
+                               'before_trade_stock_owned': stock_owned
+                               }
         nso = stock_owned - sold_stocks + bought_stocks
-        return nso, internal_state
+        return nso
+
+    def post_action_observation_update(self, trading_price_previous_action, average_stock_cost, **kwargs):
+        average_stock_cost = average_stock_cost * self.internal_state['before_trade_stock_owned'] \
+                             + self.internal_state['bought_stocks'] * trading_price_previous_action
+        return {'average_stock_cost': average_stock_cost}

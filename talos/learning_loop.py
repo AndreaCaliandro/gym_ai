@@ -39,10 +39,11 @@ class LearningLoop:
                 record = {'episode': episode, 'step': t}
                 record.update(observation)
 
-                action, internal_state = self.agent.action(**observation)
-                record.update(internal_state)
+                action = self.agent.action(**observation)
+                record.update(self.agent.internal_state)
 
                 observation, reward, done, info = self.env.step(action)
+                observation.update(self.agent.post_action_observation_update(**observation))
 
                 record.update(info)
                 self.log_records.append(record)

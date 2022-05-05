@@ -34,7 +34,10 @@ class TradingEnv(gym.Env):
             "stock_memory": spaces.Space(),
             "stock_owned": spaces.Box(low=0, high=np.inf, shape=(self.n_stocks, ), dtype=np.int),
             "uninvested_cash": spaces.Box(low=-np.inf, high=np.inf, shape=(), dtype=np.float32),
-            "portfolio_amount": spaces.Box(low=0, high=np.inf, shape=(), dtype=np.float32)})
+            "portfolio_amount": spaces.Box(low=0, high=np.inf, shape=(), dtype=np.float32),
+            "trading_price_previous_action": spaces.Box(low=0, high=np.inf, shape=(), dtype=np.float32),
+            "average_stock_cost": spaces.Box(low=0, high=np.inf, shape=(), dtype=np.float32),
+        })
 
         self.initial_money = initial_money  # Moneys available at the beginning of each episode
         self.risk_factor = risk_factor   # Determine how much we are sensitive to losses or gains, respectively.
@@ -82,7 +85,9 @@ class TradingEnv(gym.Env):
             "stock_memory": self.stock_memory,
             "stock_owned": self.stock_owned,
             "uninvested_cash": self.uninvested_cash,
-            "portfolio_amount": self.portfolio_amount
+            "portfolio_amount": self.portfolio_amount,
+            "trading_price_previous_action": 0,
+            "average_stock_cost": 0
         }
         self.market_value = self.stock_price.sum()
         return self.state
@@ -130,16 +135,16 @@ class TradingEnv(gym.Env):
         self.portfolio_amount = self.vested_amount(self.stock_price) + self.uninvested_cash
         self.stock_memory = self.update_stock_memory()
 
-        self.state = {
+        self.state.update({
             "stock_price": self.stock_price,
             "stock_memory": self.stock_memory,
             "stock_owned": self.stock_owned,
             "uninvested_cash": self.uninvested_cash,
-            "portfolio_amount": self.portfolio_amount
-        }
+            "portfolio_amount": self.portfolio_amount,
+            "trading_price_previous_action": trading_price,
+        })
 
         info = {
-            "trading_price": trading_price,
             "gain": self.portfolio_amount - self.initial_money,
             "gain_percent": 100 * (self.portfolio_amount/self.initial_money - 1),
             "reward": reward,
