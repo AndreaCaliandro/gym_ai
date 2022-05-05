@@ -2,7 +2,6 @@ from gym import Env
 from gym.wrappers.time_limit import TimeLimit
 from talos.base_agent import BaseAgent
 from matplotlib import pyplot as plt
-import numpy as np
 
 
 class LearningLoop:
@@ -20,7 +19,10 @@ class LearningLoop:
         self.env = environment
         self.agent = agent
         self.episodes = episodes
-        self.stats = []
+        self.stats = {'episode_num': [],
+                      'steps': []
+                      }
+        self.log_records = []
 
     def training(self):
         if isinstance(self.env, TimeLimit):
@@ -33,19 +35,35 @@ class LearningLoop:
             observation = self.env.reset()
             for t in range(self.env.spec.max_episode_steps):
                 self.env.render()
-                # print(observation)
 
-                action = self.agent.action(*observation)
+                record = {'episode': episode, 'step': t}
+                record.update(observation)
+
+                action, internal_state = self.agent.action(**observation)
+                record.update(internal_state)
+
                 observation, reward, done, info = self.env.step(action)
+
+                record.update(info)
+                self.log_records.append(record)
 
                 if done:
                     print("Episode finished after {} timesteps".format(t + 1))
-                    self.stats.append([episode, t+1])
+                    self.stats['episode_num'].append(episode)
+                    self.stats['steps'].append(t+1)
+                    self.additional_stats(info)
                     break
         self.env.close()
 
-    def plot_stats(self):
-        fig = plt.figure()
-        stats = np.array(self.stats)
-        plt.plot(stats[:, 0], stats[:, 1])
-        fig.show()
+    def additional_stats(self, info):
+        pass
+
+    def plot_stats(self, stats_name='steps', figure=None):
+        if figure is None:
+            figure = plt.figure()
+        plt.plot(self.stats['episode_num'], self.stats[stats_name], label=stats_name)
+        plt.title(stats_name)
+        plt.ylabel(stats_name)
+        plt.xlabel('Episode')
+        plt.legend()
+        return figure
