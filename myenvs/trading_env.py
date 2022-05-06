@@ -87,7 +87,7 @@ class TradingEnv(gym.Env):
             "uninvested_cash": self.uninvested_cash,
             "portfolio_amount": self.portfolio_amount,
             "trading_price_previous_action": 0,
-            "average_stock_cost": 0
+            "average_stock_cost": np.array([0]*self.n_stocks)
         }
         self.market_value = self.stock_price.sum()
         return self.state

@@ -40,7 +40,7 @@ class TradingLoop(LearningLoop):
 
 if __name__ == '__main__':
 
-    learn = TradingLoop(environment=env, agent=agent, episodes=3)
+    learn = TradingLoop(environment=env, agent=agent, episodes=10)
     learn.time_limit_loop()
 
     learn.plot_stats('portfolio_amount').show()
