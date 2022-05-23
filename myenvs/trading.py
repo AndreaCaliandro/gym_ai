@@ -51,6 +51,4 @@ if __name__ == '__main__':
 
     records = [{key:d[key] for key in d if key!='stock_memory'} for d in learn.log_records]
     df = pd.DataFrame(records)
-    df.to_csv('../logs/trading_5.csv', index=False)
-    # df[df['episode']==9].plot('step', 'stock_price')
-    # df[df['episode'] == 9].plot('step', 'stock_owned')
+    df.to_json('../logs/trading_3.json')

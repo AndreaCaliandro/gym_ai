@@ -35,8 +35,8 @@ class TradingEnv(gym.Env):
             "stock_owned": spaces.Box(low=0, high=np.inf, shape=(self.n_stocks, ), dtype=np.int),
             "uninvested_cash": spaces.Box(low=-np.inf, high=np.inf, shape=(), dtype=np.float32),
             "portfolio_amount": spaces.Box(low=0, high=np.inf, shape=(), dtype=np.float32),
-            "trading_price_previous_action": spaces.Box(low=0, high=np.inf, shape=(), dtype=np.float32),
-            "average_stock_cost": spaces.Box(low=0, high=np.inf, shape=(), dtype=np.float32),
+            "trading_price_previous_action": spaces.Box(low=0, high=np.inf, shape=(self.n_stocks, ), dtype=np.float32),
+            "average_stock_cost": spaces.Box(low=0, high=np.inf, shape=(self.n_stocks, ), dtype=np.float32),
         })
 
         self.initial_money = initial_money  # Moneys available at the beginning of each episode
@@ -86,15 +86,15 @@ class TradingEnv(gym.Env):
             "stock_owned": self.stock_owned,
             "uninvested_cash": self.uninvested_cash,
             "portfolio_amount": self.portfolio_amount,
-            "trading_price_previous_action": 0,
-            "average_stock_cost": np.array([0]*self.n_stocks)
+            "trading_price_previous_action": self.get_trading_price(),
+            "average_stock_cost": self.stock_price
         }
         self.market_value = self.stock_price.sum()
         return self.state
 
     def step_reward(self, traded_portfolio):
         """
-        Reward is calculated as gain respect to the initial aomunt of money invested
+        Reward is calculated as gain respect to the initial amount of money invested
         """
         delta = traded_portfolio/self.initial_money - 1
         if delta < 0:
@@ -161,7 +161,10 @@ class TradingEnv(gym.Env):
         return self.uninvested_cash + self.vested_amount(trading_price)
 
     def get_stock_price(self):
-        return self.stock_history.loc[self.trading_day, 'Open']
+        price = self.stock_history.loc[self.trading_day, 'Open']
+        if self.n_stocks==1:
+            return np.array([price])
+        return price.values
 
     def update_stock_memory(self):
         return self.full_history.iloc[self.trading_day - self.memory_lenght: self.trading_day]
@@ -170,7 +173,10 @@ class TradingEnv(gym.Env):
         return (stock_price * self.stock_owned).sum()
 
     def get_trading_price(self):
-        return self.full_history.loc[self.trading_day, self.trading_price_column]
+        price = self.full_history.loc[self.trading_day, self.trading_price_column]
+        if self.n_stocks==1:
+            return np.array([price])
+        return price.values
 
     def render(self, mode='human'):
         return 0

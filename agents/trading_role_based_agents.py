@@ -26,13 +26,25 @@ class OneStock(BaseAgent):
                                'before_trade_stock_owned': np.array([])
                                }
 
-    def sell_function(self, stock_owned, stock_price, average_stock_cost, alpha = 0.0):
-        price_diff = stock_price - (1 + alpha) * average_stock_cost
-        return np.floor(stock_owned / (1 + np.exp(-price_diff)))
+    def sell_function(self, stock_owned, stock_price, average_stock_cost, offset=-1.0, alpha=5.0):
+        delta = (stock_price - average_stock_cost)/average_stock_cost
+        # x = (delta - offset) / alpha
+        # step_func = 1. / (1 + np.exp(-x))
+        if delta > 0:
+            step_func = 0.8
+        else:
+            step_func = 0.2
+        return np.floor(stock_owned * step_func)
 
-    def buy_function(self, uninvested_cash, stock_price, average_stock_cost, alpha = 0.0):
-        price_diff =  average_stock_cost - (1 + alpha) * stock_price
-        return np.floor(uninvested_cash / (1 + np.exp(-price_diff)) / stock_price)
+    def buy_function(self, uninvested_cash, stock_price, average_stock_cost, offset=1.0, alpha=5.0):
+        delta = (average_stock_cost - stock_price)/stock_price
+        # x = (delta - offset)/alpha
+        # step_func = 1./(1 + np.exp(-x))
+        if delta > 0:
+            step_func = 0.8
+        else:
+            step_func = 0.2
+        return np.floor(uninvested_cash * step_func / stock_price)
 
     def action(self, stock_price, stock_memory, stock_owned,
                uninvested_cash, portfolio_amount, average_stock_cost, **kwargs):
@@ -46,6 +58,9 @@ class OneStock(BaseAgent):
 
         sold_stocks = stock_owned * 0
         bought_stocks = stock_owned * 0
+
+        if stock_owned.sum() == 0:
+            average_stock_cost = stock_price
 
         if stock_price > hi_margin:
             # Sell
@@ -71,9 +86,10 @@ class OneStock(BaseAgent):
         nso = stock_owned - sold_stocks + bought_stocks
         return nso
 
-    def post_action_observation_update(self, trading_price_previous_action, average_stock_cost, stock_owned, **kwargs):
+    def post_action_observation_update(self, trading_price_previous_action, average_stock_cost,
+                                       stock_owned, stock_price, **kwargs):
         if stock_owned.sum() == 0:
-            return {'average_stock_cost': stock_owned}
+            return {'average_stock_cost': stock_price}  # average_stock_cost}
         stock_cost = average_stock_cost * (self.internal_state['before_trade_stock_owned'] -
                                            self.internal_state['sold_stocks'])  \
                     + self.internal_state['bought_stocks'] * trading_price_previous_action
