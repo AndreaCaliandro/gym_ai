@@ -23,6 +23,7 @@ class LearningLoop:
                       'steps': []
                       }
         self.log_records = []
+        self.record = None
 
     def training(self):
         if isinstance(self.env, TimeLimit):
@@ -36,17 +37,18 @@ class LearningLoop:
             for t in range(self.env.spec.max_episode_steps):
                 self.env.render()
 
-                record = {'episode': episode, 'step': t}
-                record.update(observation)
+                self.record = {'episode': episode, 'step': t}
+                self.update_record(observation, 'observation')
 
-                action = self.agent.action(**observation)
-                record.update(self.agent.internal_state)
+                action = self.agent.action(observation)
+                self.update_record(self.agent.internal_state, 'internal_state')
 
                 observation, reward, done, info = self.env.step(action)
-                observation.update(self.agent.post_action_observation_update(**observation))
+                if isinstance(observation, dict):
+                    observation.update(self.agent.post_action_observation_update(**observation))
 
-                record.update(info)
-                self.log_records.append(record)
+                self.update_record(info, 'info')
+                self.log_records.append(self.record)
 
                 if done:
                     print("Episode finished after {} timesteps".format(t + 1))
@@ -68,3 +70,10 @@ class LearningLoop:
         plt.xlabel('Episode')
         plt.legend()
         return figure
+
+    def update_record(self, data, data_key):
+        if isinstance(data, dict):
+            self.record.update(data)
+        else:
+            self.record.update({data_key: data})
+

@@ -17,7 +17,7 @@ class BaseAgent:
         self.internal_state = {}
 
     @abstractmethod
-    def action(self, **observation):
+    def action(self, observation, **kwargs):
         """
         Decision making of the agent. This method is called every time the agent is requested to take an action.
         By default this method return a random action among those allowed.

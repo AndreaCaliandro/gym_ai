@@ -7,7 +7,7 @@ from agents.trading.trend import trend_margins, exponential_moving_average, dail
 
 class DummyAgent(BaseAgent):
 
-    def action(self, **observation):
+    def action(self, observation):
         return np.array([1]*self.action_space.shape[0])
 
 
@@ -46,9 +46,15 @@ class OneStock(BaseAgent):
             step_func = 0.2
         return np.floor(uninvested_cash * step_func / stock_price)
 
-    def action(self, stock_price, stock_memory, stock_owned,
-               uninvested_cash, portfolio_amount, average_stock_cost, **kwargs):
-        # print("OneStock agent action")
+    def action(self, observation, **kwargs):
+
+        stock_price = observation['stock_price']
+        stock_memory = observation['stock_memory']
+        stock_owned = observation['stock_owned']
+        uninvested_cash = observation['uninvested_cash']
+        portfolio_amount = observation['portfolio_amount']
+        average_stock_cost = observation['average_stock_cost']
+
         margin = trend_margins(stock_memory, self.window_size)
         timeseries_df = stock_memory[['Open']].append({'Open': stock_price}, ignore_index=True)
         ewm = exponential_moving_average(timeseries_df, self.window_size)[f'ewm_{self.window_size}']

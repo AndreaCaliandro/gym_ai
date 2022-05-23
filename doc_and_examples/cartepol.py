@@ -12,7 +12,8 @@ class CartPoleAgent(BaseAgent):
     def __init__(self, env):
         super().__init__(env)
 
-    def action(self, position, velocity, angle, angular_vel):
+    def action(self, observation, **kwargs):
+        position, velocity, angle, angular_vel = observation
         if angular_vel<-0.094:
             action = 0
         elif angular_vel>0.094:
@@ -26,8 +27,8 @@ class CartPoleAgent(BaseAgent):
 
 if __name__ == '__main__':
     agent = CartPoleAgent(env)
-    learn = LearningLoop(env, agent)
+    learn = LearningLoop(env, agent, episodes=25)
 
     learn.training()
     learn.plot_stats()
-    print((np.array(learn.stats)[:, 1] >= 475).sum())
+    print((np.array(learn.stats['steps']) >= 475).sum())
