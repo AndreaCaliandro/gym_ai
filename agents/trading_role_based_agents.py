@@ -34,13 +34,13 @@ class OneStock(BaseAgent):
             step_func = 0.8
         else:
             step_func = 0.2
-        return np.floor(stock_owned * step_func)
+        return 0.0  # np.floor(stock_owned * step_func)
 
     def buy_function(self, uninvested_cash, stock_price, average_stock_cost, offset=1.0, alpha=5.0):
-        delta = (average_stock_cost - stock_price)/stock_price
+        delta = (stock_price - average_stock_cost)/average_stock_cost
         # x = (delta - offset)/alpha
         # step_func = 1./(1 + np.exp(-x))
-        if delta > 0:
+        if delta < 0:
             step_func = 0.8
         else:
             step_func = 0.2

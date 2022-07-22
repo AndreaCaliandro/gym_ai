@@ -103,6 +103,15 @@ class TradingEnv(gym.Env):
             reward = delta * self.risk_factor[1]
         return reward
 
+    def virtual_reward(self):
+        """
+        Reward calculate against an investor that uses all his budget
+        to buy stocks at the beginning of the trading period.
+        The reward is proportional to how much the agent outperform such investor
+        :return:
+        """
+        pass
+
     def step(self, action):
         """Run one timestep of the environment's dynamics. When end of
         episode is reached, you are responsible for calling `reset()`
