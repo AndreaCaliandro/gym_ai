@@ -1,8 +1,7 @@
 import numpy as np
 
-from myenvs.trading_env import TradingEnv
 from talos.base_agent import BaseAgent
-from agents.trading.trend import trend_margins, exponential_moving_average, daily_volatility
+from myenvs.trading.agents.trading.trend import trend_margins, exponential_moving_average
 
 
 class DummyAgent(BaseAgent):

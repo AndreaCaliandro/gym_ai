@@ -1,8 +1,8 @@
 import pandas as pd
 
 from talos.learning_loop import LearningLoop
-from myenvs.trading_env import TradingEnv
-from agents.trading_role_based_agents import DummyAgent, OneStock
+from myenvs.trading.trading_env import TradingEnv
+from agents.trading_role_based_agents import OneStock
 
 import warnings
 warnings.filterwarnings("ignore")
