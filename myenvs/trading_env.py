@@ -103,14 +103,16 @@ class TradingEnv(gym.Env):
             reward = delta * self.risk_factor[1]
         return reward
 
-    def virtual_reward(self):
+    def virtual_reward(self, traded_portfolio):
         """
         Reward calculate against an investor that uses all his budget
         to buy stocks at the beginning of the trading period.
         The reward is proportional to how much the agent outperform such investor
         :return:
         """
-        pass
+        virtual_agent_gain = self.stock_price.sum() / self.market_value - 1
+        agent_gain = traded_portfolio/self.initial_money - 1
+        return agent_gain - virtual_agent_gain
 
     def step(self, action):
         """Run one timestep of the environment's dynamics. When end of
@@ -129,7 +131,8 @@ class TradingEnv(gym.Env):
         traded_portfolio = self.trade(action)  # In this moment only the Open price of the day is known
 
         done = False
-        reward = self.step_reward(traded_portfolio)
+        # reward = self.step_reward(traded_portfolio)
+        reward = self.virtual_reward(traded_portfolio)
         if self.uninvested_cash < 0:
             reward = -np.inf
             done = True
