@@ -3,12 +3,16 @@ import pandas as pd
 from talos.learning_loop import LearningLoop
 from myenvs.trading.trading_env import TradingEnv
 from agents.trading_role_based_agents import OneStock
+from myenvs.trading.rewards.market_reward import MarketReward
 
 import warnings
+
+
 warnings.filterwarnings("ignore")
 
 
 env = TradingEnv(stocks_list=('NVDA',),
+                 reward_class=MarketReward(),
                  initial_money=100000,
                  stock_memory_lenght=5*10,  # 10 weeks
                  episode_lenght=5*26,  # 1 year

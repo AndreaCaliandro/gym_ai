@@ -5,6 +5,8 @@ from gym.envs.registration import EnvSpec
 import numpy as np
 import yfinance as yf
 
+from talos.base_reward import BaseReward
+
 
 class TradingEnv(gym.Env):
     """
@@ -17,13 +19,16 @@ class TradingEnv(gym.Env):
     metadata = {"render.modes": [] }
     reward_range = (-float("inf"), float("inf"))
 
-    def __init__(self, stocks_list=(), initial_money=None, risk_factor = (1.0, 1.0),
+    def __init__(self, stocks_list=(), initial_money=None,
+                 reward_class=BaseReward(),
+                 risk_factor = (1.0, 1.0),
                  full_history_start='2010-01-01', full_history_end='2022-02-01',
                  stock_memory_lenght=5*13,  # About 3 months
                  episode_lenght=5*52,  # One year
                  trading_price_column='Close'
                 ):
 
+        self.reward_engine = reward_class
         self.spec = EnvSpec(id='Trading-v0', max_episode_steps=episode_lenght)
 
         self.n_stocks = len(stocks_list)
@@ -50,7 +55,6 @@ class TradingEnv(gym.Env):
 
         self.stock_history = None
         self.trading_day = 0
-        self.total_reward = 0
 
         # The variables below are set at the end of each step and represent the step state
         self.stock_price = None  # Array of stock price of each firm
@@ -79,7 +83,7 @@ class TradingEnv(gym.Env):
         self.uninvested_cash = self.initial_money
         self.stock_price = self.get_stock_price()
         self.stock_memory = self.update_stock_memory()
-        self.total_reward = 0
+        self.reward_engine.total_reward = 0
         self.state = {
             "stock_price": self.stock_price,
             "stock_memory": self.stock_memory,
@@ -103,17 +107,6 @@ class TradingEnv(gym.Env):
             reward = delta * self.risk_factor[1]
         return reward
 
-    def virtual_reward(self, traded_portfolio):
-        """
-        Reward calculate against an investor that uses all his budget
-        to buy stocks at the beginning of the trading period.
-        The reward is proportional to how much the agent outperform such investor
-        :return:
-        """
-        virtual_agent_gain = self.stock_price.sum() / self.market_value - 1
-        agent_gain = traded_portfolio/self.initial_money - 1
-        return agent_gain - virtual_agent_gain
-
     def step(self, action):
         """Run one timestep of the environment's dynamics. When end of
         episode is reached, you are responsible for calling `reset()`
@@ -128,16 +121,19 @@ class TradingEnv(gym.Env):
             info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
         """
         trading_price = self.get_trading_price()
-        traded_portfolio = self.trade(action)  # In this moment only the Open price of the day is known
+        traded_portfolio = self.trade(action)
+        # At the moment of deciding which action to take,
+        # only the Open price of the day is known.
+        # While the outcome of the action (traded portfolio) is computed using the stock price at the selling moment,
+        # typically the day closure.
 
         done = False
-        # reward = self.step_reward(traded_portfolio)
-        reward = self.virtual_reward(traded_portfolio)
+        reward = self.reward_engine.step_reward(traded_portfolio, status=self.state)
         if self.uninvested_cash < 0:
             reward = -np.inf
             done = True
             print('OUT OF CASH!!!')
-        self.total_reward += reward
+        self.reward_engine.update_total_reward(reward)
 
         self.trading_day += 1
         if self.trading_day == self.stock_history.index[-1]:
@@ -160,7 +156,7 @@ class TradingEnv(gym.Env):
             "gain": self.portfolio_amount - self.initial_money,
             "gain_percent": 100 * (self.portfolio_amount/self.initial_money - 1),
             "reward": reward,
-            "total_reward": self.total_reward
+            "total_reward": self.reward_engine.total_reward
         }
 
         return self.state, reward, done, info
