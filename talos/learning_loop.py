@@ -34,6 +34,7 @@ class LearningLoop:
     def time_limit_loop(self):
         for episode in range(self.episodes):
             observation = self.env.reset()
+            self.agent.reset()
             for t in range(self.env.spec.max_episode_steps):
                 self.env.render()
 
@@ -41,12 +42,10 @@ class LearningLoop:
                 self.update_record(observation, 'observation')
 
                 action = self.agent.action(observation)
-                self.update_record(self.agent.internal_state, 'internal_state')
-
                 observation, reward, done, info = self.env.step(action)
-                if isinstance(observation, dict):
-                    observation.update(self.agent.post_action_observation_update(**observation))
+                self.agent.internal_state_update(**observation)
 
+                self.update_record(self.agent.internal_state, 'internal_state')
                 self.update_record(info, 'info')
                 self.log_records.append(self.record)
 

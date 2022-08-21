@@ -7,13 +7,20 @@ class BaseAgent:
     Abstract class of an agent.
     """
 
-    def __init__(self, environment: Env, **kwargs):
+    def __init__(self, environment, **kwargs):
         """
 
         :param environment: the context or board game with its rules where the agent take actions.
         """
         self.action_space = environment.action_space
         self.observation_space = environment.observation_space
+        self.environment = environment
+        self.internal_state = {}
+
+    def reset(self):
+        """
+        Reset the internal state of the agent
+        """
         self.internal_state = {}
 
     @abstractmethod
@@ -24,10 +31,9 @@ class BaseAgent:
         """
         return self.action_space.sample()
 
-    @abstractmethod
-    def post_action_observation_update(self, **kwargs):
+    def internal_state_update(self, **kwargs):
         """
-        Grep information that the agent learn soon after its action, which will can affect the next action,
+        Grep information that the agent learn soon after its action, which can affect the next action,
         but not the one just taken.
         """
-        return {}
+        self.internal_state.update()

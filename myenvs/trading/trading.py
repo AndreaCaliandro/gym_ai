@@ -3,23 +3,26 @@ import pandas as pd
 from talos.learning_loop import LearningLoop
 from myenvs.trading.trading_env import TradingEnv
 from agents.trading_role_based_agents import OneStock
-from myenvs.trading.rewards.market_reward import MarketReward
+from agents.predict_best_stock import DumbAgent
+from myenvs.trading.rewards.market_reward import MarketReward, BestStock, GainReward
 
 import warnings
 
 
 warnings.filterwarnings("ignore")
 
+reward_class = GainReward(loss_risk_factor=1.0, gain_risk_factor=1.0)
+# reward_class = BestStock()
 
-env = TradingEnv(stocks_list=('NVDA',),
-                 reward_class=MarketReward(),
+env = TradingEnv(stocks_list=('NVDA',), #'AMZN', 'AAPL', 'NKE', 'T'),
+                 reward_class=reward_class,
                  initial_money=100000,
-                 stock_memory_lenght=5*10,  # 10 weeks
-                 episode_lenght=5*26,  # 1 year
+                 stock_memory_length=5*10,  # 10 weeks
+                 episode_length=5*26,  # 1 year
                  )
 
-# agent = DummyAgent(environment=env)
 agent = OneStock(environment=env, stock_name='NVDA', window_size=5)
+# agent = DumbAgent(environment=env)
 
 
 class TradingLoop(LearningLoop):

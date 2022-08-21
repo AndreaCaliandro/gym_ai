@@ -1,28 +1,32 @@
 import numpy as np
 
 from talos.base_agent import BaseAgent
+from myenvs.trading.trading_env import TradingEnv
 from myenvs.trading.agents.trading.trend import trend_margins, exponential_moving_average
 
 
 class DummyAgent(BaseAgent):
 
-    def action(self, observation):
+    def action(self, observation, **kwargs):
         return np.array([1]*self.action_space.shape[0])
 
 
 class OneStock(BaseAgent):
 
-    def __init__(self, environment, stock_name, window_size):
+    def __init__(self, environment, stock_name=None, window_size=None):
         super(OneStock, self).__init__(environment)
         self.stock_name = stock_name
         self.window_size = window_size
+
+    def reset(self):
         self.internal_state = {'low_margin': 0,
                                'hi_margin': 0,
                                'ewm': 0,
                                'trade': 0,
                                'sold_stocks': np.array([]),
                                'bought_stocks': np.array([]),
-                               'before_trade_stock_owned': np.array([])
+                               'before_trade_stock_owned': np.array([]),
+                               'average_stock_cost': self.environment.stock_price,
                                }
 
     def sell_function(self, stock_owned, stock_price, average_stock_cost, offset=-1.0, alpha=5.0):
@@ -52,7 +56,7 @@ class OneStock(BaseAgent):
         stock_owned = observation['stock_owned']
         uninvested_cash = observation['uninvested_cash']
         portfolio_amount = observation['portfolio_amount']
-        average_stock_cost = observation['average_stock_cost']
+        average_stock_cost = self.internal_state['average_stock_cost']
 
         margin = trend_margins(stock_memory, self.window_size)
         timeseries_df = stock_memory[['Open']].append({'Open': stock_price}, ignore_index=True)
@@ -80,22 +84,22 @@ class OneStock(BaseAgent):
         else:
             trade = 0
 
-        self.internal_state = {'low_margin': low_margin,
-                               'hi_margin': hi_margin,
-                               'ewm': ewm.iloc[-1],
-                               'trade': trade,
-                               'sold_stocks': sold_stocks,
-                               'bought_stocks': bought_stocks,
-                               'before_trade_stock_owned': stock_owned
-                               }
+        self.internal_state.update({'low_margin': low_margin,
+                                    'hi_margin': hi_margin,
+                                    'ewm': ewm.iloc[-1],
+                                    'trade': trade,
+                                    'sold_stocks': sold_stocks,
+                                    'bought_stocks': bought_stocks,
+                                    'before_trade_stock_owned': stock_owned
+                                    })
         nso = stock_owned - sold_stocks + bought_stocks
         return nso
 
-    def post_action_observation_update(self, trading_price_previous_action, average_stock_cost,
-                                       stock_owned, stock_price, **kwargs):
+    def internal_state_update(self, trading_price_previous_action,
+                              stock_owned, stock_price, **kwargs):
         if stock_owned.sum() == 0:
             return {'average_stock_cost': stock_price}  # average_stock_cost}
-        stock_cost = average_stock_cost * (self.internal_state['before_trade_stock_owned'] -
-                                           self.internal_state['sold_stocks'])  \
-                    + self.internal_state['bought_stocks'] * trading_price_previous_action
-        return {'average_stock_cost': stock_cost/stock_owned}
+        stock_cost = self.internal_state['average_stock_cost'] * (self.internal_state['before_trade_stock_owned'] -
+                                                                  self.internal_state['sold_stocks'])  \
+            + self.internal_state['bought_stocks'] * trading_price_previous_action
+        self.internal_state.update({'average_stock_cost': stock_cost/stock_owned})
