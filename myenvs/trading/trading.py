@@ -3,7 +3,7 @@ import pandas as pd
 from talos.learning_loop import LearningLoop
 from myenvs.trading.trading_env import TradingEnv
 from agents.trading_role_based_agents import OneStock
-from agents.predict_best_stock import DumbAgent
+from agents.predict_best_stock import DumbAgent, EmaAgent
 from myenvs.trading.rewards.market_reward import MarketReward, BestStock, GainReward
 
 import warnings
@@ -11,18 +11,19 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-reward_class = GainReward(loss_risk_factor=1.0, gain_risk_factor=1.0)
-# reward_class = BestStock()
+# reward_class = GainReward(loss_risk_factor=1.0, gain_risk_factor=1.0)
+reward_class = BestStock()
 
-env = TradingEnv(stocks_list=('NVDA',), #'AMZN', 'AAPL', 'NKE', 'T'),
+env = TradingEnv(stocks_list=('NVDA', 'AMZN', 'AAPL', 'NKE', 'T'),
                  reward_class=reward_class,
                  initial_money=100000,
                  stock_memory_length=5*10,  # 10 weeks
                  episode_length=5*26,  # 1 year
                  )
 
-agent = OneStock(environment=env, stock_name='NVDA', window_size=5)
+# agent = OneStock(environment=env, stock_name='NVDA', window_size=5)
 # agent = DumbAgent(environment=env)
+agent = EmaAgent(environment=env)
 
 
 class TradingLoop(LearningLoop):
@@ -50,11 +51,11 @@ if __name__ == '__main__':
     learn = TradingLoop(environment=env, agent=agent, episodes=10)
     learn.time_limit_loop()
 
-    learn.plot_stats('portfolio_amount').show()
-    learn.plot_stats('cash').show()
+    # learn.plot_stats('portfolio_amount').show()
+    # learn.plot_stats('cash').show()
     learn.plot_stats('total_reward').show()
-    fig = learn.plot_stats('gain_percent')
-    learn.plot_stats('market_change', figure=fig).show()
+    # fig = learn.plot_stats('gain_percent')
+    # learn.plot_stats('market_change', figure=fig).show()
 
     records = [{key:d[key] for key in d if key!='stock_memory'} for d in learn.log_records]
     df = pd.DataFrame(records)

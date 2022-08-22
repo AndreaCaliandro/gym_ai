@@ -35,6 +35,7 @@ class TradingEnv(gym.Env):
         self.action_space = spaces.Box(np.array([0]*self.n_stocks), np.array([np.inf]*self.n_stocks), dtype=np.int)
         self.observation_space = spaces.Dict({
             "stock_price": spaces.Box(low=0, high=np.inf, shape=(self.n_stocks, ), dtype=np.float32),
+            "stock_change": spaces.Box(low=0, high=np.inf, shape=(self.n_stocks,), dtype=np.float32),
             "stock_memory": spaces.Space(),
             "stock_owned": spaces.Box(low=0, high=np.inf, shape=(self.n_stocks, ), dtype=np.int),
             "uninvested_cash": spaces.Box(low=-np.inf, high=np.inf, shape=(), dtype=np.float32),
@@ -54,6 +55,7 @@ class TradingEnv(gym.Env):
 
         # The variables below are set at the end of each step and represent the step state
         self.stock_price = None  # Array of stock price of each firm
+        self.stock_change = None  # Array of stock change in percentage
         self.stock_owned = None  # Array with Number of stocks of each firm
         self.uninvested_cash = None  # Residual cash not invested in stocks
         self.portfolio_amount = None  # Total available amount of moneys
@@ -79,10 +81,12 @@ class TradingEnv(gym.Env):
         self.portfolio_amount = self.initial_money
         self.uninvested_cash = self.initial_money
         self.stock_price = self.get_stock_price()
+        self.stock_change = self.get_stock_change()
         self.stock_memory = self.update_stock_memory()
         self.reward_engine.total_reward = 0
         self.state = {
             "stock_price": self.stock_price,
+            "stock_change": self.stock_change,
             "stock_memory": self.stock_memory,
             "stock_owned": self.stock_owned,
             "uninvested_cash": self.uninvested_cash,
@@ -115,11 +119,13 @@ class TradingEnv(gym.Env):
         self.trading_day += 1
 
         self.stock_price = self.get_stock_price()
+        self.stock_change = self.get_stock_change()
         self.portfolio_amount = self.vested_amount(self.stock_price) + self.uninvested_cash
         self.stock_memory = self.update_stock_memory()
 
         self.state.update({
             "stock_price": self.stock_price,
+            "stock_change": self.stock_change,
             "stock_memory": self.stock_memory,
             "stock_owned": self.stock_owned,
             "uninvested_cash": self.uninvested_cash,
@@ -160,6 +166,14 @@ class TradingEnv(gym.Env):
         if self.n_stocks==1:
             return np.array([price])
         return price.values
+
+    def get_stock_change(self):
+        today_price = self.full_history.loc[self.trading_day, 'Open']
+        yesterday_price = self.full_history.loc[self.trading_day - 1, 'Open']
+        change = 100 * today_price / yesterday_price - 1
+        if self.n_stocks == 1:
+            return np.array([change])
+        return change.values
 
     def update_stock_memory(self):
         return self.full_history.iloc[self.trading_day - self.memory_length: self.trading_day]

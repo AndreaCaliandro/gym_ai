@@ -21,37 +21,49 @@ class DumbAgent(BaseAgent):
         return stock_owned
 
 
-class BayesianAgent(BaseAgent):
+class EmaAgent(BaseAgent):
     """
-    Implement the Thompson Sampling Theory
+    Each day calculate the EMA af each stock change, to model them with gaussian with fixed variance.
+    Point all on the stock with highest change calculated sampling a value from their models.
+    The day after check that the stock pointed to had effectively the highest change.
+    If true, reduce the variance of its model by a delta.
+    If false, increase its variance by a delta.
     """
-    def __init__(self, environment):
-        super(BayesianAgent, self).__init__(environment)
+    def __init__(self, environment, initial_sigma=1.0, ema_alpha=0.1):
+        super(EmaAgent, self).__init__(environment)
         self.n_stocks = environment.n_stocks
+        self.sigma0 = initial_sigma
+        self.ema_alpha = ema_alpha
+
+    def reset(self):
         self.internal_state = {
-            'alpha': np.array([1.0] * self.n_stocks),
-            'beta': np.array([1.0] * self.n_stocks),
-            'num_pulls': np.array([0] * self.n_stocks)
+            'change_mean': self.environment.stock_change,
+            'change_sigma': np.array([self.sigma0] * self.n_stocks),
+            'num_pulls': np.zeros(self.n_stocks)
         }
-        self.internal_state.update({'p_estimate': beta.stats(self.internal_state['alpha'],
-                                                             self.internal_state['beta'],
-                                                             moments='m'
-                                                             )})
 
-    def internal_state_update(self, outcome, slot_index):
-        self.internal_state['alpha'][slot_index] += outcome
-        self.internal_state['beta'][slot_index] += 1 - outcome
-        self.internal_state['num_pulls'][slot_index] += 1
-        self.internal_state['p_estimate'][slot_index] = beta.stats(self.internal_state['alpha'][slot_index],
-                                                                   self.internal_state['beta'][slot_index],
-                                                                   moments='m'
-                                                                   )
-        self.internal_state.update()
+    def exp_moving_ave(self, emas, values):
+        return values * self.ema_alpha + emas * (1 - self.ema_alpha)
 
-    def sample(self, slot_index):
-        a = self.internal_state['alpha'][slot_index]
-        b = self.internal_state['beta'][slot_index]
-        return np.random.beta(a, b)
+    def internal_state_update(self, stock_owned, stock_change, **kwargs):
+        self.internal_state['change_mean'] = self.exp_moving_ave(self.internal_state['change_mean'], stock_change)
+
+        stock_index = np.argmax(stock_owned)
+        if np.argmax(stock_change) == stock_index:
+            self.internal_state['num_pulls'][stock_index] += 1
+        else:
+            self.internal_state['num_pulls'][stock_index]  -= 0.5
+            self.internal_state['num_pulls'][stock_index] = max(0, self.internal_state['num_pulls'][stock_index])
+        self.internal_state['change_sigma'] = \
+            self.internal_state['change_sigma'] / np.sqrt(self.internal_state['num_pulls'] + 1)
+
+    def sample(self):
+        mean = np.array(self.internal_state['change_mean'], dtype=float)
+        sigma = self.internal_state['change_sigma']
+        return np.random.normal(mean, sigma)
 
     def action(self, observation, **kwargs):
-        return np.argmax([self.sample(j) for j in range(self.n_stocks)])
+        stock_owned = np.zeros(self.action_space.shape[0])
+        stock_index = np.argmax(self.sample())
+        stock_owned[stock_index] = 1  # TODO Do not buy just one. Instead, use the full portfolio to buy this stock
+        return stock_owned

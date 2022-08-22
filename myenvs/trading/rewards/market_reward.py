@@ -46,6 +46,4 @@ class BestStock(BaseReward):
         We assume that the agent posts all the portfolio on the stock predicted to have the highest gain
         """
         stock_variation = stock_price / trading_price_previous_action
-        print(stock_owned)
-        print(stock_variation)
         return np.argmax(stock_owned) == np.argmax(stock_variation)
