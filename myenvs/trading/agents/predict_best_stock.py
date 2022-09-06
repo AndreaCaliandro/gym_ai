@@ -49,13 +49,13 @@ class EmaAgent(BaseAgent):
         self.internal_state['change_mean'] = self.exp_moving_ave(self.internal_state['change_mean'], stock_change)
 
         stock_index = np.argmax(stock_owned)
+        sigmas = self.internal_state['change_sigma'] * np.sqrt(self.internal_state['num_pulls'] + 1)
         if np.argmax(stock_change) == stock_index:
             self.internal_state['num_pulls'][stock_index] += 1
         else:
             self.internal_state['num_pulls'][stock_index]  -= 0.5
             self.internal_state['num_pulls'][stock_index] = max(0, self.internal_state['num_pulls'][stock_index])
-        self.internal_state['change_sigma'] = \
-            self.internal_state['change_sigma'] / np.sqrt(self.internal_state['num_pulls'] + 1)
+        self.internal_state['change_sigma'] = sigmas / np.sqrt(self.internal_state['num_pulls'] + 1)
 
     def sample(self):
         mean = np.array(self.internal_state['change_mean'], dtype=float)

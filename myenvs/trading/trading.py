@@ -23,7 +23,7 @@ env = TradingEnv(stocks_list=('NVDA', 'AMZN', 'AAPL', 'NKE', 'T'),
 
 # agent = OneStock(environment=env, stock_name='NVDA', window_size=5)
 # agent = DumbAgent(environment=env)
-agent = EmaAgent(environment=env)
+agent = EmaAgent(environment=env, initial_sigma=0.01, ema_alpha=0.5)
 
 
 class TradingLoop(LearningLoop):
@@ -48,7 +48,7 @@ class TradingLoop(LearningLoop):
 
 if __name__ == '__main__':
 
-    learn = TradingLoop(environment=env, agent=agent, episodes=10)
+    learn = TradingLoop(environment=env, agent=agent, episodes=20)
     learn.time_limit_loop()
 
     # learn.plot_stats('portfolio_amount').show()

@@ -170,7 +170,7 @@ class TradingEnv(gym.Env):
     def get_stock_change(self):
         today_price = self.full_history.loc[self.trading_day, 'Open']
         yesterday_price = self.full_history.loc[self.trading_day - 1, 'Open']
-        change = 100 * today_price / yesterday_price - 1
+        change = 100 * (today_price / yesterday_price - 1)
         if self.n_stocks == 1:
             return np.array([change])
         return change.values
